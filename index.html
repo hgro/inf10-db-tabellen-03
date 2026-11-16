@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Datentypen und Aufbau der Nutzertabelle – InstaHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  --bg:#f4f5f7;--card:#fff;--ink:#1d2330;--muted:#5f6675;--line:#dfe2e8;
+  --accent:#2f5ea8;--accent-soft:#e8eef8;--key:#8a5a00;--key-soft:#fbf1dc;
+  --ok:#17905f;--ok-soft:#e0f4ea;--bad:#cf3f3f;--bad-soft:#fde7e7;
+  --attr:#2b67d6;--attr-soft:#e2ecfc;--row:#c76d00;--row-soft:#fdefd9;--val:#17905f;--val-soft:#e0f4ea;--tab:#5a4aa8;--tab-soft:#ecebf6;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Source Sans 3",system-ui,sans-serif;font-size:17px;line-height:1.5;color:var(--ink);background:var(--bg)}
+header{background:#fff;color:var(--ink);padding:22px 20px 18px;border-bottom:1px solid var(--line)}
+.hwrap{max-width:980px;margin:0 auto;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between}
+header .kicker{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700}
+header h1{margin:2px 0 0;font-size:28px;line-height:1.15;font-weight:800}
+.namebox{display:flex;flex-direction:column;font-size:13px;font-weight:600;color:var(--muted)}
+.namebox input{margin-top:3px;border:2px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;font-size:16px;min-width:220px}
+nav{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 2px 8px rgba(40,20,90,.05)}
+.navwrap{max-width:980px;margin:0 auto;display:flex;gap:6px;overflow-x:auto;padding:10px 14px}
+.tab{flex:none;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:7px 14px;font:inherit;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap}
+.tab:hover{border-color:var(--accent)}
+.tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.tab.done:not(.active){background:var(--ok-soft);border-color:#9fd8bd;color:#0d6a45}
+.progress{max-width:980px;margin:0 auto;padding:0 16px 8px;font-size:13px;color:var(--muted)}
+.bar{height:6px;background:var(--line);border-radius:9px;overflow:hidden;margin-top:4px}
+.bar span{display:block;height:100%;background:var(--accent);width:0;transition:width .4s}
+main{max-width:980px;margin:0 auto;padding:22px 16px 60px}
+section{display:none}
+section.show{display:block}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:18px;box-shadow:0 1px 3px rgba(40,20,90,.04)}
+h2{margin:0 0 6px;font-size:24px}
+h3{margin:18px 0 8px;font-size:19px}
+.task{color:var(--muted);margin:0 0 14px}
+.lead{font-size:18px}
+.t-tab,.t-attr,.t-row,.t-val{font-weight:700;padding:0 4px;border-radius:5px}
+.t-tab{background:var(--tab-soft);color:var(--tab)}.t-attr{background:var(--attr-soft);color:var(--attr)}
+.t-row{background:var(--row-soft);color:var(--row)}.t-val{background:var(--val-soft);color:var(--val)}
+/* data tables */
+.dbt{border-collapse:separate;border-spacing:0;font-family:"JetBrains Mono",monospace;font-size:15px;margin:10px 0;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.dbt caption{caption-side:top;text-align:left;font-family:"Source Sans 3",sans-serif;font-weight:700;padding:0 0 6px;color:var(--muted);font-size:14px;letter-spacing:.04em;text-transform:uppercase}
+.dbt th,.dbt td{padding:9px 14px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:left;transition:background .15s,box-shadow .15s}
+.dbt th:last-child,.dbt td:last-child{border-right:0}
+.dbt tbody tr:last-child td{border-bottom:0}
+.dbt th{background:#f1f3f6;font-weight:600}
+.dbt th.pk{text-decoration:underline;text-underline-offset:3px}
+.scroll{overflow-x:auto}
+.legendbtns{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.lbtn{border:2px solid;border-radius:999px;background:#fff;padding:4px 12px;font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+.lbtn.attr{border-color:var(--attr);color:var(--attr)}.lbtn.row{border-color:var(--row);color:var(--row)}.lbtn.val{border-color:var(--val);color:var(--val)}
+.lbtn.on.attr{background:var(--attr);color:#fff}.lbtn.on.row{background:var(--row);color:#fff}.lbtn.on.val{background:var(--val);color:#fff}
+#infoTable.sa th{background:var(--attr-soft);color:var(--attr);box-shadow:inset 0 -3px 0 var(--attr)}
+#infoTable.sr tbody tr:first-child td{background:var(--row-soft)}
+#infoTable.sv tbody tr:first-child td:nth-child(2){background:var(--val-soft);box-shadow:inset 0 0 0 3px var(--val)}
+.merke{border-left:6px solid var(--accent);background:var(--accent-soft);border-radius:12px;padding:14px 18px;margin-top:14px}
+.merke h3{margin:0 0 6px;color:var(--accent)}
+.merke ul{margin:0;padding-left:20px}
+/* buttons */
+.btn{border:0;border-radius:10px;padding:9px 16px;font:inherit;font-weight:700;cursor:pointer;background:var(--accent);color:#fff}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:#fff;color:var(--accent);border:2px solid var(--accent)}
+.btn.small{padding:5px 11px;font-size:15px}
+.row-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.next{display:flex;justify-content:flex-end;margin-top:4px}
+.fb{margin-top:12px;border-radius:10px;padding:10px 14px;display:none}
+.fb.show{display:block}
+.fb.ok{background:var(--ok-soft);color:#0d6a45}.fb.bad{background:var(--bad-soft);color:#9b2525}.fb.info{background:#f1f3f6;color:var(--ink)}
+/* sort */
+.bankwrap{border:2px dashed var(--line);border-radius:14px;padding:10px 12px;margin-bottom:14px;background:#fafbfc}
+.banklabel{font-size:13px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.bank{display:flex;flex-wrap:wrap;gap:8px;min-height:42px}
+.card{border:2px solid var(--accent);background:#fff;color:var(--ink);border-radius:10px;padding:6px 12px;font:inherit;font-weight:600;cursor:grab;user-select:none}
+.card:hover{background:var(--accent-soft)}
+.card.sel{background:var(--accent);color:#fff;box-shadow:0 0 0 4px rgba(47,94,168,.25)}
+.card.ok{border-color:var(--ok);background:var(--ok-soft);color:#0d6a45}
+.card.bad{border-color:var(--bad);background:var(--bad-soft);color:#9b2525}
+.picking .zone{outline:2px dashed var(--accent);outline-offset:2px;cursor:pointer}
+.picking .bank{cursor:pointer}
+.zones{display:grid;gap:10px}
+.zone{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;transition:background .15s}
+.zone.over{background:var(--accent-soft)}
+.zone.slot{display:grid;grid-template-columns:1fr 200px;gap:12px;align-items:center}
+.zone.slot .zcards{min-height:42px;border:2px dashed var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;padding:3px}
+.zones.bins{grid-template-columns:1fr 1fr}
+.zone.bin .zlabel{font-weight:800;font-size:18px;margin-bottom:6px}
+.zone.bin .zcards{display:flex;flex-wrap:wrap;gap:8px;min-height:120px;align-content:flex-start}
+.zone.bin.attrbin{border-top:5px solid var(--attr)}.zone.bin.valbin{border-top:5px solid var(--val)}
+@media(max-width:640px){.zone.slot{grid-template-columns:1fr}.zones.bins{grid-template-columns:1fr}}
+/* A2 */
+.prompt{font-size:19px;background:var(--accent-soft);border-radius:12px;padding:12px 16px;margin:8px 0 12px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.prompt .cnt{font-size:14px;color:var(--muted);white-space:nowrap}
+#a2Table th,#a2Table td{cursor:pointer}
+#a2Table td.handle{background:#f1f3f6;color:var(--muted);font-family:"Source Sans 3",sans-serif;font-size:13px;text-align:center;padding:9px 8px;width:70px}
+#a2Table th.corner{cursor:default;background:#f1f3f6}
+#a2Table .hov{background:#e8eef8}
+#a2Table tr.hovrow td{background:#e8eef8}
+#a2Table .flash-ok{background:var(--ok-soft)!important;box-shadow:inset 0 0 0 3px var(--ok)}
+#a2Table tr.flash-ok td{background:var(--ok-soft)!important}
+#a2Table .flash-bad{background:var(--bad-soft)!important}
+#a2Table tr.flash-bad td{background:var(--bad-soft)!important}
+.counts{display:grid;gap:10px;margin-top:6px}
+.counts label{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.counts input{width:80px;font:inherit;padding:6px 8px;border:2px solid var(--line);border-radius:8px}
+.counts input.ok{border-color:var(--ok);background:var(--ok-soft)}.counts input.bad{border-color:var(--bad);background:var(--bad-soft)}
+/* A4 */
+.stmt{display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--line)}
+.stmt:last-child{border-bottom:0}
+.stmt .num{font-weight:800;color:var(--accent)}
+.rf{display:flex;gap:6px}
+.rf button{border:2px solid var(--line);background:#fff;border-radius:8px;padding:4px 10px;font:inherit;font-weight:700;cursor:pointer}
+.rf button:hover{border-color:var(--accent)}
+.rf button.ok{border-color:var(--ok);background:var(--ok);color:#fff}.rf button.bad{border-color:var(--bad);background:var(--bad);color:#fff}
+.stmt .exp{grid-column:2/4;font-size:15px;border-radius:8px;padding:6px 10px;display:none}
+.stmt .exp.show{display:block}.stmt .exp.ok{background:var(--ok-soft)}.stmt .exp.bad{background:var(--bad-soft)}
+@media(max-width:560px){.stmt{grid-template-columns:24px 1fr}.rf{grid-column:2}.stmt .exp{grid-column:2}}
+/* A5 */
+.sent{padding:10px 0;border-bottom:1px solid var(--line);line-height:2.1}
+.sent:last-child{border-bottom:0}
+.sent select{font:inherit;font-size:16px;padding:3px 6px;border:2px solid var(--line);border-radius:8px;background:#fff}
+.sent select.ok{border-color:var(--ok);background:var(--ok-soft)}.sent select.bad{border-color:var(--bad);background:var(--bad-soft)}
+/* A6 */
+.steps{counter-reset:s}
+.step{border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
+.step:first-child{border-top:0;margin-top:0;padding-top:0}
+.step h3{margin-top:0}
+.step h3::before{counter-increment:s;content:counter(s);display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:15px;margin-right:8px}
+.field{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:6px 0}
+.field input[type=text],.field select{font:inherit;padding:7px 10px;border:2px solid var(--line);border-radius:8px;min-width:240px}
+.tip{background:#fff8e6;border:1px solid #f3dc9a;border-radius:10px;padding:8px 12px;margin:8px 0;display:none;font-size:15px}
+.tip.show{display:block}
+#bTable{font-family:"Source Sans 3",sans-serif}
+#bTable th,#bTable td{padding:4px}
+#bTable input{font:inherit;font-size:15px;border:1px solid transparent;border-radius:6px;padding:6px 8px;width:140px;background:transparent}
+#bTable th input{font-weight:700;color:var(--attr)}
+#bTable input:focus{outline:none;border-color:var(--accent);background:#fff}
+#bTable input::placeholder{color:#b4afc4;font-weight:400}
+.thwrap{display:flex;align-items:center}
+.x{border:0;background:transparent;color:#a39db8;font-size:18px;cursor:pointer;padding:0 6px;border-radius:6px}
+.x:hover{color:var(--bad);background:var(--bad-soft)}
+td.tight,th.tight{width:30px;background:#fff!important}
+.checks{list-style:none;padding:0;margin:10px 0;display:grid;gap:4px}
+.checks li{display:flex;gap:8px;align-items:flex-start;font-size:15px}
+.checks li .ic{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;background:var(--line);color:#fff}
+.checks li.ok .ic{background:var(--ok)}
+.checks li .hint{color:var(--muted)}
+.q{margin:14px 0}
+.q label{font-weight:700;display:block;margin-bottom:4px}
+.q textarea{width:100%;min-height:78px;font:inherit;font-size:16px;padding:8px 10px;border:2px solid var(--line);border-radius:10px;resize:vertical}
+.q textarea:focus{outline:none;border-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.chip{border-radius:999px;padding:3px 12px;font-size:14px;font-weight:700;border:2px solid var(--line);color:var(--muted);background:#fff}
+.chip.on{color:#fff}
+.chip.on.c-tab{background:var(--tab);border-color:var(--tab)}.chip.on.c-attr{background:var(--attr);border-color:var(--attr)}
+.chip.on.c-row{background:var(--row);border-color:var(--row)}.chip.on.c-val{background:var(--val);border-color:var(--val)}
+.bausteine{display:none;background:#f4f6f9;border-radius:10px;padding:10px 14px;font-size:15px}
+.bausteine.show{display:block}
+.bausteine ul{margin:4px 0 0;padding-left:20px}
+#copyOut{width:100%;min-height:160px;font-family:"JetBrains Mono",monospace;font-size:13px;margin-top:10px;display:none;border:2px solid var(--line);border-radius:10px;padding:8px}
+.success{text-align:center;padding:16px;border-radius:14px;background:var(--ok-soft);color:#0d6a45;margin-top:14px;display:none;font-weight:700}
+.success.show{display:block}
+.t-key{font-weight:700;padding:0 4px;border-radius:5px;background:var(--key-soft);color:var(--key)}
+.lbtn.key{border-color:var(--key);color:var(--key)}.lbtn.on.key{background:var(--key);color:#fff}
+#infoTable.sk th:first-child,#infoTable.sk td:first-child{background:var(--key-soft);color:var(--key);font-weight:600}
+.kbtn{border:1px solid transparent;background:transparent;cursor:pointer;border-radius:6px;padding:1px 4px;font-size:14px;filter:grayscale(1);opacity:.45}
+.kbtn:hover{opacity:.9}.kbtn.on{filter:none;opacity:1;background:var(--key-soft);border-color:#e5c98a}
+#bTable th.iskey input{text-decoration:underline;color:var(--key)}
+.fixed-topic{display:inline-block;background:var(--accent-soft);color:var(--accent);font-weight:700;border-radius:8px;padding:6px 12px}
+.badge{display:inline-block;background:var(--key-soft);color:var(--key);font-weight:700;font-size:13px;border-radius:999px;padding:2px 10px;margin-bottom:6px}
+.kc{display:grid;grid-template-columns:170px auto 1fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.kc:last-child{border-bottom:0}.kc .an{font-family:"JetBrains Mono",monospace;font-weight:600}
+.kc .msg{font-size:15px;color:var(--muted)}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:7px 10px;border-radius:8px;cursor:pointer}
+.chk:hover{background:#f4f6f9}.chk input{margin-top:5px;width:18px;height:18px}
+.chk.ok{background:var(--ok-soft)}.chk.bad{background:var(--bad-soft)}
+@media(max-width:600px){.kc{grid-template-columns:1fr}}
+
+:root{--ty-text:#4b5563;--ty-text-s:#eef0f3;--ty-int:#2b67d6;--ty-int-s:#e2ecfc;--ty-dec:#0e7f86;--ty-dec-s:#dff3f4;--ty-date:#c76d00;--ty-date-s:#fdefd9;--ty-time:#7a4cc2;--ty-time-s:#efe8fb;--ty-bool:#17905f;--ty-bool-s:#e0f4ea}
+.ty{display:inline-block;font-weight:700;font-size:14px;border-radius:6px;padding:1px 8px;white-space:nowrap}
+.ty-Text{background:var(--ty-text-s);color:var(--ty-text)}.ty-Ganzzahl{background:var(--ty-int-s);color:var(--ty-int)}
+.ty-Dezimalzahl{background:var(--ty-dec-s);color:var(--ty-dec)}.ty-Datum{background:var(--ty-date-s);color:var(--ty-date)}
+.ty-Uhrzeit{background:var(--ty-time-s);color:var(--ty-time)}.ty-Wahrheitswert{background:var(--ty-bool-s);color:var(--ty-bool)}
+.zones.bins3{grid-template-columns:repeat(3,1fr)}
+.zone.bin .zcards{min-height:90px}
+.bt-Text{border-top:5px solid var(--ty-text)}.bt-Ganzzahl{border-top:5px solid var(--ty-int)}.bt-Dezimalzahl{border-top:5px solid var(--ty-dec)}
+.bt-Datum{border-top:5px solid var(--ty-date)}.bt-Uhrzeit{border-top:5px solid var(--ty-time)}.bt-Wahrheitswert{border-top:5px solid var(--ty-bool)}
+@media(max-width:760px){.zones.bins3{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.zones.bins3{grid-template-columns:1fr}}
+.card small{font-weight:400;color:var(--muted);margin-left:4px}
+.card.sel small{color:#fff}
+.dbt td.q{color:var(--muted);font-weight:700;text-align:center}
+.achtung{border-left:6px solid var(--key);background:var(--key-soft);border-radius:12px;padding:12px 16px;margin:12px 0}
+.mc{display:grid;gap:8px;margin:8px 0}
+.mc button{text-align:left;border:2px solid var(--line);background:#fff;border-radius:10px;padding:9px 12px;font:inherit;cursor:pointer}
+.mc button:hover{border-color:var(--accent)}
+.mc button.ok{border-color:var(--ok);background:var(--ok-soft)}.mc button.bad{border-color:var(--bad);background:var(--bad-soft)}
+.mc button:disabled{cursor:default}
+.mc-exp{font-size:15px;border-radius:8px;padding:6px 10px;margin-top:4px;display:none}
+.mc-exp.show{display:block}.mc-exp.ok{background:var(--ok-soft)}.mc-exp.bad{background:var(--bad-soft)}
+table.sel-t select{font:inherit;font-size:15px;padding:4px 6px;border:2px solid var(--line);border-radius:8px;background:#fff}
+table.sel-t select.ok{border-color:var(--ok);background:var(--ok-soft)}table.sel-t select.bad{border-color:var(--bad);background:var(--bad-soft)}
+table.sel-t td.why{font-family:"Source Sans 3",sans-serif;font-size:14px;color:var(--muted);max-width:300px}
+table.sel-t{font-size:14px}
+.det .rf button{padding:3px 8px;font-size:14px}
+.det select{visibility:hidden}.det select.vis{visibility:visible}
+#bTable th{vertical-align:top}
+#bTable select.tsel{font:inherit;font-size:13px;margin-top:4px;width:100%;border:1px solid var(--line);border-radius:6px;padding:3px;background:#fff}
+#bTable td input.badval{background:var(--bad-soft);border-color:var(--bad)}
+.why-list{display:grid;gap:8px;margin-top:8px}
+.why-row{display:grid;grid-template-columns:260px 1fr;gap:10px;align-items:center}
+.why-row input{font:inherit;font-size:15px;padding:6px 10px;border:2px solid var(--line);border-radius:8px;width:100%}
+.why-row input:focus{outline:none;border-color:var(--accent)}
+@media(max-width:640px){.why-row{grid-template-columns:1fr}}
+.sim{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:#f4f6f9;border-radius:12px;padding:12px 14px;margin:10px 0}
+.sim input,.sim select{font:inherit;padding:7px 10px;border:2px solid var(--line);border-radius:8px}
+.simout{font-family:"JetBrains Mono",monospace;font-size:15px;border-radius:10px;padding:10px 14px;margin-top:6px;display:none}
+.simout.show{display:block}.simout.ok{background:var(--ok-soft)}.simout.bad{background:var(--bad-soft)}.simout.warn{background:var(--key-soft)}
+.qblock{margin:14px 0 6px;font-weight:700}
+.sortdemo{display:none;gap:18px;flex-wrap:wrap;margin-top:10px}
+.sortdemo.show{display:flex}
+.sortdemo div{background:#f4f6f9;border-radius:10px;padding:8px 14px;font-family:"JetBrains Mono",monospace}
+</style>
+</head>
+<body>
+<header>
+  <div class="hwrap">
+    <div>
+      <div class="kicker">InstaHub · Datenbanken · Klasse 10</div>
+      <h1>Datentypen und Aufbau der Nutzertabelle</h1>
+    </div>
+    <label class="namebox">Dein Name
+      <input id="studentName" type="text" placeholder="Vorname Nachname" autocomplete="off">
+    </label>
+  </div>
+</header>
+<nav>
+  <div class="navwrap" id="tabs"></div>
+  <div class="progress"><span id="progText">0 von 6 Aufgaben erledigt</span><div class="bar"><span id="progBar"></span></div></div>
+</nav>
+
+<main>
+<!-- ================= ZIELE + TEXT ================= -->
+<section id="info">
+  <div class="panel">
+    <h2>Das lernst du heute</h2>
+    <ul style="margin:6px 0 0;padding-left:20px">
+      <li>Ich kann erklären, was ein Datentyp ist.</li>
+      <li>Ich kann verschiedene Datentypen unterscheiden.</li>
+      <li>Ich kann passenden Attributen geeignete Datentypen zuordnen.</li>
+      <li>Ich kann eine Nutzertabelle für InstaHub planen und aufbauen.</li>
+      <li>Ich kann begründen, warum bestimmte Datentypen für bestimmte Informationen sinnvoll sind.</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h2>Datentypen und Aufbau der Nutzertabelle</h2>
+    <p class="lead">In einer Datenbank werden Informationen nicht einfach irgendwie gespeichert. Für jedes Attribut muss festgelegt werden, welche Art von Information darin stehen darf. Dafür gibt es sogenannte <b>Datentypen</b>.</p>
+
+    <h3>1. Was ist ein Datentyp?</h3>
+    <p>Ein <b>Datentyp</b> legt fest, welche Art von Werten in einem Attribut gespeichert werden können.</p>
+    <p>Stell dir vor, InstaHub möchte Informationen über seine Benutzerinnen und Benutzer speichern. Dabei gibt es ganz unterschiedliche Angaben:</p>
+    <ul><li>einen Benutzernamen</li><li>eine Anzahl von Beiträgen</li><li>das Registrierungsdatum</li><li>die Information, ob ein Konto aktiv ist</li></ul>
+    <p>Diese Angaben unterscheiden sich voneinander. Ein Datum ist beispielsweise etwas anderes als ein Text oder eine Zahl. Deshalb benötigt jedes Attribut einen passenden Datentyp.</p>
+
+    <h3>2. Verschiedene Datentypen</h3>
+    <p>Die folgenden Datentypen begegnen dir häufig in Datenbanken:</p>
+    <div class="scroll"><table class="dbt" style="font-family:'Source Sans 3',sans-serif">
+      <thead><tr><th>Datentyp</th><th>Bedeutung</th><th>Beispiele</th></tr></thead>
+      <tbody>
+        <tr><td><span class="ty ty-Text">Text</span></td><td>Speichert Buchstaben, Wörter und Zeichen.</td><td>„Lisa“, „lisa23“, „lisa@mail.de“</td></tr>
+        <tr><td><span class="ty ty-Ganzzahl">Ganzzahl</span></td><td>Speichert ganze Zahlen ohne Nachkommastellen.</td><td>12, 150, 2026</td></tr>
+        <tr><td><span class="ty ty-Dezimalzahl">Dezimalzahl</span></td><td>Speichert Zahlen mit Nachkommastellen.</td><td>3,5 oder 19,99</td></tr>
+        <tr><td><span class="ty ty-Datum">Datum</span></td><td>Speichert ein Kalenderdatum.</td><td>16.11.2026</td></tr>
+        <tr><td><span class="ty ty-Uhrzeit">Uhrzeit</span></td><td>Speichert eine Uhrzeit.</td><td>08:45</td></tr>
+        <tr><td><span class="ty ty-Wahrheitswert">Wahrheitswert (Boolean)</span></td><td>Speichert nur zwei mögliche Zustände: wahr oder falsch.</td><td>aktiv/inaktiv, ja/nein</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Warum ist die Wahl des Datentyps wichtig?</h3>
+    <p>Der Datentyp muss zur Information passen. Ein Beispiel: Die Anzahl der Beiträge eines Benutzers wird als <span class="ty ty-Ganzzahl">Ganzzahl</span> gespeichert. Eine halbe Anzahl von Beiträgen ist schließlich nicht sinnvoll. Ein Benutzername wird dagegen als <span class="ty ty-Text">Text</span> gespeichert. Er kann Buchstaben, Zahlen und Sonderzeichen enthalten.</p>
+    <div class="achtung"><b>Achtung: Nicht jede Zahl ist automatisch ein Zahlenwert!</b><br>Eine Telefonnummer oder eine Postleitzahl wird normalerweise als Text gespeichert. Mit diesen Angaben wird nicht gerechnet. Außerdem können sie mit einer Null beginnen, die sonst möglicherweise verloren gehen würde.</div>
+
+    <h3>3. Welcher Datentyp passt?</h3>
+    <p>Überlege dir, welche Informationen InstaHub über einen Benutzer speichern könnte:</p>
+    <div class="scroll"><table class="dbt">
+      <thead><tr><th>Attribut</th><th>Beispiel für einen Wert</th><th>Passender Datentyp</th></tr></thead>
+      <tbody>
+        <tr><td>Benutzername</td><td>lisa23</td><td class="q">?</td></tr>
+        <tr><td>Vorname</td><td>Lisa</td><td class="q">?</td></tr>
+        <tr><td>E-Mail-Adresse</td><td>lisa@mail.de</td><td class="q">?</td></tr>
+        <tr><td>Anzahl der Beiträge</td><td>12</td><td class="q">?</td></tr>
+        <tr><td>Registrierungsdatum</td><td>16.11.2026</td><td class="q">?</td></tr>
+        <tr><td>Konto aktiv</td><td>ja</td><td class="q">?</td></tr>
+      </tbody>
+    </table></div>
+    <p>Für jedes Attribut muss ein Datentyp festgelegt werden. So wird sichergestellt, dass die gespeicherten Werte zur jeweiligen Information passen. <i>(Die Fragezeichen klärst du in Aufgabe 3.)</i></p>
+
+    <h3>4. Eine Nutzertabelle für InstaHub planen</h3>
+    <p>Nun soll InstaHub Informationen über seine Benutzerinnen und Benutzer speichern. Dafür benötigen wir eine eigene Nutzertabelle. Überlege zunächst, welche Informationen über einen Benutzer sinnvoll sind. Mögliche Attribute sind: BenutzerID, Benutzername, Vorname, Nachname, E-Mail-Adresse, Registrierungsdatum, Konto aktiv.</p>
+    <p>Die Tabelle könnte beispielsweise so aufgebaut sein:</p>
+    <div class="scroll"><table class="dbt">
+      <caption>Tabelle: Benutzer</caption>
+      <thead><tr><th class="pk">BenutzerID</th><th>Benutzername</th><th>Vorname</th><th>E-Mail-Adresse</th><th>Registrierungsdatum</th><th>Konto aktiv</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>lisa23</td><td>Lisa</td><td>lisa@mail.de</td><td>10.11.2026</td><td>ja</td></tr>
+        <tr><td>2</td><td>max99</td><td>Max</td><td>max@mail.de</td><td>12.11.2026</td><td>ja</td></tr>
+        <tr><td>3</td><td>sara_01</td><td>Sara</td><td>sara@mail.de</td><td>15.11.2026</td><td>nein</td></tr>
+      </tbody>
+    </table></div>
+    <p>Die BenutzerID dient dazu, jeden Benutzer eindeutig zu unterscheiden. Auch wenn zwei Personen denselben Namen haben sollten, können sie anhand ihrer ID auseinandergehalten werden.</p>
+    <p>Für jedes Attribut muss außerdem ein passender Datentyp ausgewählt werden. Zum Beispiel:</p>
+    <div class="scroll"><table class="dbt" style="font-family:'Source Sans 3',sans-serif">
+      <thead><tr><th>Attribut</th><th>Datentyp</th><th>Begründung</th></tr></thead>
+      <tbody>
+        <tr><td>BenutzerID</td><td><span class="ty ty-Ganzzahl">Ganzzahl</span></td><td>Die ID besteht aus einer ganzen Zahl.</td></tr>
+        <tr><td>Benutzername</td><td><span class="ty ty-Text">Text</span></td><td>Ein Benutzername kann Buchstaben, Zahlen und Sonderzeichen enthalten.</td></tr>
+        <tr><td>Vorname</td><td><span class="ty ty-Text">Text</span></td><td>Ein Vorname besteht aus Buchstaben.</td></tr>
+        <tr><td>E-Mail-Adresse</td><td><span class="ty ty-Text">Text</span></td><td>Eine E-Mail-Adresse enthält Buchstaben und Sonderzeichen.</td></tr>
+        <tr><td>Registrierungsdatum</td><td><span class="ty ty-Datum">Datum</span></td><td>Es wird ein Kalenderdatum gespeichert.</td></tr>
+        <tr><td>Konto aktiv</td><td><span class="ty ty-Wahrheitswert">Wahrheitswert</span></td><td>Das Konto ist entweder aktiv oder nicht aktiv.</td></tr>
+      </tbody>
+    </table></div>
+    <p>Eine gut geplante Tabelle enthält alle benötigten Attribute und verwendet für jedes Attribut einen passenden Datentyp.</p>
+  </div>
+  <div class="next"><button class="btn" data-go="a1">Zu Aufgabe 1 →</button></div>
+</section>
+
+<!-- ================= A1 ================= -->
+<section id="a1">
+  <div class="panel">
+    <h2>Aufgabe 1: Was ist ein Datentyp?</h2>
+    <p class="task">a) Welche Erklärung ist richtig? Wähle aus.</p>
+    <div class="mc" id="a1mc"></div>
+    <div class="mc-exp" id="a1mcExp"></div>
+  </div>
+  <div class="panel">
+    <p class="task">b) Ordne jedem Datentyp seine Bedeutung zu. Ziehe die Karte in das Feld – oder tippe erst die Karte und dann das Feld an.</p>
+    <div id="a1b"></div>
+    <div class="row-actions"><button class="btn" id="a1bCheck">Überprüfen</button></div>
+    <div class="fb" id="a1bFb"></div>
+  </div>
+  <div class="next"><button class="btn" data-go="a2">Weiter zu Aufgabe 2 →</button></div>
+</section>
+
+<!-- ================= A2 ================= -->
+<section id="a2">
+  <div class="panel">
+    <h2>Aufgabe 2: Datentypen unterscheiden</h2>
+    <p class="task">Hier sind Attributwerte aus der InstaHub-Datenbank durcheinandergeraten. In Klammern steht, zu welchem Attribut der Wert gehört. Sortiere jeden Wert in den passenden Datentyp.</p>
+    <div id="a2s"></div>
+    <div class="row-actions"><button class="btn" id="a2Check">Überprüfen</button><button class="btn ghost" id="a2Tip">Tipp</button></div>
+    <div class="tip" id="a2TipBox">Schau nicht nur auf die Zeichen, sondern frage dich: <b>Rechnet man mit dem Wert?</b> Telefonnummern und Postleitzahlen bestehen zwar aus Ziffern, aber man rechnet nicht mit ihnen – und sie können mit 0 beginnen.</div>
+    <div class="fb" id="a2Fb"></div>
+  </div>
+  <div class="next"><button class="btn" data-go="a3">Weiter zu Aufgabe 3 →</button></div>
+</section>
+
+<!-- ================= A3 ================= -->
+<section id="a3">
+  <div class="panel">
+    <h2>Aufgabe 3: Welcher Datentyp passt?</h2>
+    <p class="task">Wähle für jedes Attribut der Benutzertabelle den passenden Datentyp. Die ersten sechs Zeilen kennst du aus dem Text, danach kommen weitere Attribute dazu.</p>
+    <div class="scroll"><table class="dbt sel-t" id="a3t"></table></div>
+    <div class="row-actions"><button class="btn" id="a3Check">Überprüfen</button></div>
+    <div class="fb" id="a3Fb"></div>
+  </div>
+  <div class="next"><button class="btn" data-go="a4">Weiter zu Aufgabe 4 →</button></div>
+</section>
+
+<!-- ================= A4 ================= -->
+<section id="a4">
+  <div class="panel">
+    <h2>Aufgabe 4: Datentyp-Detektiv</h2>
+    <p class="task">Ein Mitschüler hat für die InstaHub-Tabelle <b>„Beiträge“</b> die Datentypen festgelegt. Prüfe jede Zeile: Passt der Datentyp? Wenn nicht, wähle den besseren Datentyp aus.</p>
+    <div class="scroll"><table class="dbt sel-t det" id="a4t"></table></div>
+    <div class="row-actions"><button class="btn" id="a4Check">Überprüfen</button></div>
+    <div class="fb" id="a4Fb"></div>
+  </div>
+  <div class="next"><button class="btn" data-go="a5">Weiter zu Aufgabe 5 →</button></div>
+</section>
+
+<!-- ================= A5 ================= -->
+<section id="a5">
+  <div class="panel">
+    <h2>Aufgabe 5: Begründen</h2>
+    <p class="task">a) Vervollständige die Sätze: Wähle zuerst den Datentyp und dann die passende Begründung.</p>
+    <div id="a5List"></div>
+    <div class="row-actions"><button class="btn" id="a5Check">Überprüfen</button></div>
+    <div class="fb" id="a5Fb"></div>
+  </div>
+  <div class="panel">
+    <p class="task">b) Ein Mitschüler sagt: „Die Postleitzahl besteht nur aus Ziffern, also speichere ich sie als Ganzzahl.“ Erkläre ihm mit eigenen Worten, warum das keine gute Idee ist.</p>
+    <div class="q"><textarea id="a5text" placeholder="Die Postleitzahl sollte als … gespeichert werden, weil …"></textarea></div>
+    <div class="row-actions"><button class="btn ghost small" id="a5sol">Vergleichen</button></div>
+    <div class="tip" id="a5solBox"><b>Das sollte in deiner Erklärung vorkommen:</b> Mit Postleitzahlen wird nicht gerechnet (niemand addiert zwei Postleitzahlen). Außerdem gibt es Postleitzahlen, die mit 0 beginnen (z. B. 01067 Dresden). Als Ganzzahl würde daraus 1067 – die führende Null ginge verloren. Deshalb ist <b>Text</b> der passende Datentyp.</div>
+  </div>
+  <div class="next"><button class="btn" data-go="a6">Weiter zu Aufgabe 6 →</button></div>
+</section>
+
+<!-- ================= A6 ================= -->
+<section id="a6">
+  <div class="panel steps">
+    <h2>Aufgabe 6: Plane eine erweiterte Nutzertabelle für InstaHub</h2>
+    <p class="task">InstaHub möchte mehr über seine Benutzerinnen und Benutzer speichern als bisher – zum Beispiel für Statistiken, für den Kontakt oder für Einstellungen im Profil. Plane und baue eine erweiterte Nutzertabelle.</p>
+
+    <div class="step">
+      <h3>Anforderungen</h3>
+      <ul style="margin:0;padding-left:20px">
+        <li>mindestens <b>7 Attribute</b>, darunter ein Schlüsselattribut (🔑)</li>
+        <li>für jedes Attribut ein <b>Datentyp</b> – insgesamt mindestens <b>4 verschiedene</b> Datentypen</li>
+        <li>mindestens <b>3 Datensätze</b>, deren Attributwerte zum Datentyp passen</li>
+        <li>für jedes Attribut eine kurze <b>Begründung</b> des Datentyps</li>
+      </ul>
+      <button class="btn ghost small" id="ideaBtn" style="margin-top:10px">Denkanstöße</button>
+      <div class="tip" id="ideaBox"><b>Denkanstöße:</b><ul style="margin:4px 0 0;padding-left:20px"><li>Welche Zahlen zeigt InstaHub im Profil an (z. B. Follower)?</li><li>Wann hat sich jemand angemeldet – an welchem Tag, zu welcher Uhrzeit?</li><li>Welche Einstellungen kann man im Profil an- oder ausschalten?</li><li>Wie kann InstaHub jemanden erreichen?</li><li>Gibt es etwas mit Nachkommastellen, z. B. ein Guthaben?</li></ul></div>
+    </div>
+
+    <div class="step">
+      <h3>Tabelle aufbauen</h3>
+      <p class="task" style="margin-bottom:6px">Trage oben die Attribute ein und wähle darunter den Datentyp. Mit 🔑 markierst du das Schlüsselattribut, mit × entfernst du ein Attribut oder einen Datensatz. Rot markierte Felder passen nicht zum gewählten Datentyp (Datum: TT.MM.JJJJ, Uhrzeit: hh:mm, Wahrheitswert: ja/nein).</p>
+      <div class="scroll"><table class="dbt" id="bTable"></table></div>
+      <div class="row-actions">
+        <button class="btn ghost small" id="addAttr">+ Attribut</button>
+        <button class="btn ghost small" id="addRow">+ Datensatz</button>
+      </div>
+      <div style="font-weight:700;margin-top:16px">Checkliste</div>
+      <ul class="checks" id="checks"></ul>
+    </div>
+
+    <div class="step">
+      <h3>Datentypen begründen</h3>
+      <p class="task">Begründe für jedes Attribut, warum der gewählte Datentyp passt.</p>
+      <div class="why-list" id="whyList"></div>
+    </div>
+
+    <div class="step">
+      <h3>Ergebnis abgeben</h3>
+      <p class="task">Kopiere dein Ergebnis (Tabelle, Datentypen, Begründungen und deine Erklärung aus Aufgabe 5b) und füge es dort ein, wo deine Lehrkraft es haben möchte.</p>
+      <div class="row-actions">
+        <button class="btn" id="copyBtn">Ergebnis kopieren</button>
+        <button class="btn ghost small" id="resetBtn">Aufgabe 6 zurücksetzen</button>
+        <span id="copyMsg" style="color:var(--muted);font-size:15px"></span>
+      </div>
+      <textarea id="copyOut" readonly></textarea>
+      <div class="success" id="a6Success">Stark! Deine Nutzertabelle erfüllt alle Anforderungen.</div>
+    </div>
+  </div>
+  <div class="next"><button class="btn" data-go="bonus">Schon fertig? Zur Zusatzaufgabe →</button></div>
+</section>
+
+<!-- ================= BONUS ================= -->
+<section id="bonus">
+  <div class="panel">
+    <span class="badge">★ Zusatzaufgabe für Profis</span>
+    <h2>Teil A: Der Datentyp-Simulator</h2>
+    <p class="task">Eine Datenbank prüft beim Speichern, ob ein Wert zum Datentyp passt – und wandelt ihn dabei manchmal um. Probiere es aus und beantworte die Fragen darunter.</p>
+    <div class="sim">
+      Wert: <input type="text" id="simVal" placeholder="z. B. 01067">
+      Datentyp: <select id="simType"></select>
+      <button class="btn small" id="simBtn">Speichern</button>
+    </div>
+    <div class="simout" id="simOut"></div>
+    <div id="simQs"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Teil B: Die Sortierfalle</h2>
+    <p class="task">Bei einem Benutzer wurde die „Anzahl der Beiträge“ aus Versehen als <span class="ty ty-Text">Text</span> gespeichert. Text wird Zeichen für Zeichen sortiert – so wie Wörter im Wörterbuch. Die Werte lauten: <b>9, 100, 25, 3, 12</b>. Welche Reihenfolge entsteht beim aufsteigenden Sortieren?</p>
+    <div class="mc" id="sortMc"></div>
+    <div class="mc-exp" id="sortExp"></div>
+    <div class="sortdemo" id="sortDemo"><div><b>als Text:</b><br>100, 12, 25, 3, 9</div><div><b>als Ganzzahl:</b><br>3, 9, 12, 25, 100</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>Teil C: Grenzfälle</h2>
+    <p class="task">Bei diesen Attributen muss man genauer nachdenken. Wähle den passenden Datentyp.</p>
+    <div class="scroll"><table class="dbt sel-t" id="gfT"></table></div>
+    <div class="row-actions"><button class="btn" id="gfCheck">Überprüfen</button></div>
+    <div class="fb" id="gfFb"></div>
+  </div>
+</section>
+</main>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+function fb(id,type,msg){const f=$('#'+id);f.className='fb show '+type;f.innerHTML=msg;}
+const TYPES=['Text','Ganzzahl','Dezimalzahl','Datum','Uhrzeit','Wahrheitswert'];
+const tyOpts=(sel)=>'<option value="">– wählen –</option>'+TYPES.map(t=>`<option${t===sel?' selected':''}>${t}</option>`).join('');
+
+/* ---------- Tabs ---------- */
+const TABS=[['info','Ziele & Text'],['a1','1 Datentyp'],['a2','2 Unterscheiden'],['a3','3 Zuordnen'],['a4','4 Detektiv'],['a5','5 Begründen'],['a6','6 Nutzertabelle'],['bonus','★ Zusatzaufgabe']];
+const done={};let cur='info';
+function renderTabs(){
+  $('#tabs').innerHTML=TABS.map(([id,l])=>`<button class="tab ${id===cur?'active':''} ${done[id]?'done':''}" data-id="${id}">${done[id]?'✓ ':''}${l}</button>`).join('');
+  const n=['a1','a2','a3','a4','a5','a6'].filter(k=>done[k]).length;
+  $('#progText').textContent=`${n} von 6 Aufgaben erledigt`;$('#progBar').style.width=(n/6*100)+'%';
+}
+function show(id){cur=id;$$('section').forEach(s=>s.classList.toggle('show',s.id===id));renderTabs();window.scrollTo({top:0,behavior:'smooth'});}
+function setDone(id,v){done[id]=v;renderTabs();}
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(b)show(b.dataset.id);});
+$$('[data-go]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.go)));
+
+/* ---------- Sort component ---------- */
+function makeSort(root,{cards,zones,mode,zonesClass}){
+  root.innerHTML='';
+  const bankWrap=el('div','bankwrap');bankWrap.appendChild(el('div','banklabel','Karten'));
+  const bank=el('div','bank');bankWrap.appendChild(bank);
+  const zw=el('div','zones '+(zonesClass||''));
+  zones.forEach(z=>{const d=el('div','zone '+mode+' '+(z.cls||''));d.dataset.zone=z.id;d.innerHTML=`<div class="zlabel">${z.label}</div><div class="zcards"></div>`;zw.appendChild(d);});
+  root.append(bankWrap,zw);
+  let sel=null;
+  const clearMarks=()=>$$('.card',root).forEach(c=>c.classList.remove('ok','bad'));
+  const select=c=>{$$('.card.sel',root).forEach(x=>x.classList.remove('sel'));sel=c;if(c)c.classList.add('sel');root.classList.toggle('picking',!!c);};
+  const moveTo=(card,zone)=>{const holder=zone?$('.zcards',zone):bank;if(zone&&mode==='slot'){const ex=$('.card',holder);if(ex&&ex!==card)bank.appendChild(ex);}holder.appendChild(card);clearMarks();select(null);};
+  shuffle(cards).forEach(c=>{
+    const b=el('button','card',c.html||esc(c.text));b.type='button';b.dataset.target=c.target;b.draggable=true;
+    b.addEventListener('click',e=>{e.stopPropagation();select(sel===b?null:b);});
+    b.addEventListener('dragstart',e=>{select(b);try{e.dataTransfer.setData('text/plain','x');e.dataTransfer.effectAllowed='move';}catch(_){}});
+    b.addEventListener('dragend',()=>select(null));
+    bank.appendChild(b);
+  });
+  [...$$('.zone',zw),bank].forEach(t=>{const zone=t===bank?null:t;
+    t.addEventListener('click',()=>{if(sel)moveTo(sel,zone);});
+    t.addEventListener('dragover',e=>{e.preventDefault();t.classList.add('over');});
+    t.addEventListener('dragleave',()=>t.classList.remove('over'));
+    t.addEventListener('drop',e=>{e.preventDefault();t.classList.remove('over');if(sel)moveTo(sel,zone);});});
+  return{check(){let ok=0,open=0;const cs=$$('.card',root);cs.forEach(c=>{const z=c.closest('.zone');if(!z){open++;return;}const g=z.dataset.zone===c.dataset.target;c.classList.toggle('ok',g);c.classList.toggle('bad',!g);if(g)ok++;});return{ok,open,total:cs.length};}};
+}
+function sortFeedback(r,fbId,okMsg){
+  if(r.open>0){fb(fbId,'info',`Es liegen noch <b>${r.open}</b> Karte(n) im Kartenfeld. Ordne zuerst alle Karten zu.`);return false;}
+  if(r.ok===r.total){fb(fbId,'ok','✓ '+okMsg);return true;}
+  fb(fbId,'bad',`<b>${r.ok} von ${r.total}</b> richtig. Verschiebe die rot markierten Karten und überprüfe noch einmal.`);return false;
+}
+/* ---------- Multiple choice ---------- */
+function makeMC(boxId,expId,opts,onRight){
+  const box=$('#'+boxId);
+  shuffle(opts).forEach(o=>{const b=el('button','',o.t);b.type='button';b.onclick=()=>{
+    const ex=$('#'+expId);ex.className='mc-exp show '+(o.ok?'ok':'bad');ex.innerHTML=(o.ok?'✓ ':'✗ ')+o.e;
+    $$('button',box).forEach(x=>x.classList.remove('bad'));b.classList.add(o.ok?'ok':'bad');
+    if(o.ok){$$('button',box).forEach(x=>x.disabled=true);onRight&&onRight();}
+  };box.appendChild(b);});
+}
+
+/* ---------- A1 ---------- */
+let a1a=false,a1b=false;
+makeMC('a1mc','a1mcExp',[
+ {t:'Ein Datentyp legt fest, welche Art von Werten in einem Attribut gespeichert werden kann.',ok:true,e:'Genau. Zum Beispiel darf im Attribut „Registrierungsdatum“ nur ein Datum stehen.'},
+ {t:'Ein Datentyp ist der Name einer Spalte in der Tabelle.',ok:false,e:'Der Name einer Spalte ist das Attribut. Der Datentyp legt fest, welche Art von Werten in dieser Spalte stehen darf.'},
+ {t:'Ein Datentyp ist die konkrete Information in einem Tabellenfeld.',ok:false,e:'Die konkrete Information heißt Attributwert. Der Datentyp beschreibt, welche Art von Attributwerten erlaubt ist.'},
+ {t:'Ein Datentyp gibt an, wie viele Datensätze in einer Tabelle gespeichert sind.',ok:false,e:'Die Anzahl der Datensätze hat mit dem Datentyp nichts zu tun. Denk an die Art der Werte in einem Attribut.'}],
+ ()=>{a1a=true;setDone('a1',a1a&&a1b);});
+const s1b=makeSort($('#a1b'),{mode:'slot',
+  cards:TYPES.map(t=>({text:t,target:t})),
+  zones:shuffle([
+   {id:'Text',label:'Speichert Buchstaben, Wörter und Zeichen – z. B. „lisa@mail.de“.'},
+   {id:'Ganzzahl',label:'Speichert ganze Zahlen ohne Nachkommastellen – z. B. 150.'},
+   {id:'Dezimalzahl',label:'Speichert Zahlen mit Nachkommastellen – z. B. 19,99.'},
+   {id:'Datum',label:'Speichert ein Kalenderdatum – z. B. 16.11.2026.'},
+   {id:'Uhrzeit',label:'Speichert eine Uhrzeit – z. B. 08:45.'},
+   {id:'Wahrheitswert',label:'Speichert nur zwei mögliche Zustände – z. B. ja/nein.'}])});
+$('#a1bCheck').onclick=()=>{a1b=sortFeedback(s1b.check(),'a1bFb','Alle Datentypen richtig zugeordnet!');setDone('a1',a1a&&a1b);};
+
+/* ---------- A2 ---------- */
+const A2=[['Lisa','Vorname','Text'],['lisa@mail.de','E-Mail','Text'],['12','Anzahl Beiträge','Ganzzahl'],['2026','Jahr','Ganzzahl'],
+ ['19,99','Preis','Dezimalzahl'],['3,5','Durchschnittsbewertung','Dezimalzahl'],['16.11.2026','Registrierung','Datum'],['01.04.2010','Geburtsdatum','Datum'],
+ ['08:45','Uhrzeit Beitrag','Uhrzeit'],['23:10','letzte Anmeldung','Uhrzeit'],['ja','Konto aktiv','Wahrheitswert'],['nein','Profil privat','Wahrheitswert'],
+ ['01067','Postleitzahl','Text'],['0176 5551234','Telefon','Text']];
+const s2=makeSort($('#a2s'),{mode:'bin',zonesClass:'bins3',
+  cards:A2.map(([v,a,t])=>({html:`${esc(v)}<small>(${esc(a)})</small>`,target:t})),
+  zones:TYPES.map(t=>({id:t,label:`<span class="ty ty-${t}">${t}</span>`,cls:'bt-'+t}))});
+$('#a2Tip').onclick=()=>$('#a2TipBox').classList.toggle('show');
+$('#a2Check').onclick=()=>setDone('a2',sortFeedback(s2.check(),'a2Fb','Alles richtig – auch die Postleitzahl und die Telefonnummer als Text!'));
+
+/* ---------- A3 ---------- */
+const A3=[['Benutzername','lisa23','Text','kann Buchstaben, Ziffern und Sonderzeichen enthalten'],
+ ['Vorname','Lisa','Text','besteht aus Buchstaben'],
+ ['E-Mail-Adresse','lisa@mail.de','Text','enthält Buchstaben und Sonderzeichen wie @'],
+ ['Anzahl der Beiträge','12','Ganzzahl','es gibt keine halben Beiträge'],
+ ['Registrierungsdatum','16.11.2026','Datum','ein Kalenderdatum'],
+ ['Konto aktiv','ja','Wahrheitswert','nur zwei Zustände: aktiv oder nicht aktiv'],
+ ['Nachname','Schulz','Text','besteht aus Buchstaben'],
+ ['Anzahl Follower','348','Ganzzahl','man kann nur ganze Personen zählen'],
+ ['Uhrzeit der letzten Anmeldung','21:37','Uhrzeit','es wird eine Uhrzeit gespeichert'],
+ ['Postleitzahl','04109','Text','man rechnet nicht damit, und die führende 0 darf nicht verloren gehen'],
+ ['durchschnittliche Likes pro Beitrag','37,5','Dezimalzahl','ein Durchschnitt kann Nachkommastellen haben'],
+ ['Profil privat','nein','Wahrheitswert','das Profil ist entweder privat oder nicht'],
+ ['Geburtsdatum','02.05.2010','Datum','ein Kalenderdatum'],
+ ['Telefonnummer','030 1234567','Text','man rechnet nicht damit, sie beginnt mit 0 und kann Leerzeichen enthalten']];
+$('#a3t').innerHTML='<thead><tr><th>Attribut</th><th>Beispielwert</th><th>Datentyp</th><th style="font-family:\'Source Sans 3\',sans-serif">Begründung</th></tr></thead><tbody>'+
+ A3.map(([a,v],i)=>`<tr${i===6?' style="border-top:3px solid var(--line)"':''}><td>${a}</td><td>${v}</td><td><select data-i="${i}">${tyOpts()}</select></td><td class="why"></td></tr>`).join('')+'</tbody>';
+$('#a3t').addEventListener('change',e=>{if(e.target.tagName==='SELECT'){e.target.classList.remove('ok','bad');e.target.closest('tr').querySelector('.why').textContent='';}});
+$('#a3Check').onclick=()=>{
+  let ok=0,open=0;
+  $$('#a3t select').forEach(s=>{const i=+s.dataset.i,why=s.closest('tr').querySelector('.why');
+    if(!s.value){open++;s.classList.remove('ok','bad');why.textContent='';return;}
+    const g=s.value===A3[i][2];s.classList.toggle('ok',g);s.classList.toggle('bad',!g);why.textContent=g?'✓ '+A3[i][3]:'';if(g)ok++;});
+  if(ok===A3.length){fb('a3Fb','ok','✓ Alle Datentypen passen!');setDone('a3',true);}
+  else fb('a3Fb',open?'info':'bad',`${ok} von ${A3.length} richtig${open?`, ${open} noch offen`:''}.${ok+open<A3.length?' Prüfe die rot markierten Zeilen – denk an die Achtung-Regel aus dem Text.':''}`);
+};
+
+/* ---------- A4 ---------- */
+const A4=[['BeitragID','57','Ganzzahl',null],['Bildtitel','Sonnenuntergang am See','Text',null],['Anzahl Likes','214','Dezimalzahl','Ganzzahl','Likes werden gezählt – es gibt keine halben Likes.'],
+ ['veröffentlicht am','14.11.2026','Text','Datum','Als Datum kann die Datenbank z. B. nach Datum sortieren oder prüfen, ob das Datum existiert.'],
+ ['Uhrzeit','18:42','Uhrzeit',null],['Kommentare erlaubt','ja','Ganzzahl','Wahrheitswert','Kommentare sind entweder erlaubt oder nicht – zwei Zustände.'],
+ ['Postleitzahl Aufnahmeort','01067','Ganzzahl','Text','Mit Postleitzahlen rechnet man nicht, und die führende 0 ginge als Zahl verloren.'],['BenutzerID','2','Ganzzahl',null]];
+$('#a4t').innerHTML='<thead><tr><th>Attribut</th><th>Beispielwert</th><th>gewählter Datentyp</th><th style="font-family:\'Source Sans 3\',sans-serif">passt?</th><th style="font-family:\'Source Sans 3\',sans-serif">besser:</th></tr></thead><tbody>'+
+ A4.map(([a,v,t],i)=>`<tr data-i="${i}"><td>${a}</td><td>${v}</td><td><span class="ty ty-${t}">${t}</span></td><td><span class="rf"><button data-v="1">passt</button><button data-v="0">passt nicht</button></span></td><td><select>${tyOpts()}</select><div class="why"></div></td></tr>`).join('')+'</tbody>';
+const a4ans=A4.map(()=>null);
+$('#a4t').addEventListener('click',e=>{const b=e.target.closest('.rf button');if(!b)return;const tr=b.closest('tr'),i=+tr.dataset.i;a4ans[i]=b.dataset.v==='1';
+  $$('.rf button',tr).forEach(x=>{x.classList.remove('ok','bad');x.style.outline='';});b.style.outline='3px solid var(--accent)';
+  const s=$('select',tr);s.classList.toggle('vis',!a4ans[i]);s.classList.remove('ok','bad');$('.why',tr).textContent='';});
+$('#a4Check').onclick=()=>{
+  let ok=0,open=0;
+  A4.forEach(([a,v,t,better,why],i)=>{const tr=$(`#a4t tr[data-i="${i}"]`),btns=$$('.rf button',tr),s=$('select',tr),w=$('.why',tr);
+    btns.forEach(x=>{x.classList.remove('ok','bad');x.style.outline='';});s.classList.remove('ok','bad');w.textContent='';
+    if(a4ans[i]===null){open++;return;}
+    const fitsOk=a4ans[i]===(better===null);btns[a4ans[i]?0:1].classList.add(fitsOk?'ok':'bad');
+    if(!fitsOk)return;
+    if(better===null){ok++;return;}
+    if(!s.value){open++;return;}
+    const g=s.value===better;s.classList.add(g?'ok':'bad');if(g){ok++;w.textContent='✓ '+why;}});
+  if(ok===A4.length){fb('a4Fb','ok','✓ Fall gelöst! Du hast alle vier falschen Datentypen gefunden und verbessert.');setDone('a4',true);}
+  else fb('a4Fb',open?'info':'bad',`${ok} von ${A4.length} Zeilen richtig${open?`, ${open} noch nicht vollständig bearbeitet`:''}.`);
+};
+
+/* ---------- A5 ---------- */
+const A5=[
+ ['Die Anzahl der Beiträge wird als ','Ganzzahl',' gespeichert, weil ',['es keine halben Beiträge gibt.','alle Zahlen in Datenbanken Ganzzahlen sind.','man mit Text nicht zählen kann.']],
+ ['Eine Postleitzahl wie „01067“ wird als ','Text',' gespeichert, weil ',['man mit ihr nicht rechnet und die führende 0 sonst verloren gehen könnte.','sie aus genau fünf Ziffern besteht.','Text weniger Speicherplatz braucht.']],
+ ['Für das Attribut „Konto aktiv“ ist der Datentyp ','Wahrheitswert',' sinnvoll, weil ',['es nur zwei mögliche Zustände gibt.','das Wort „aktiv“ aus Buchstaben besteht.','man damit rechnen kann.']],
+ ['Der Benutzername „lisa23“ wird als ','Text',' gespeichert, weil ',['er Buchstaben, Ziffern und Sonderzeichen enthalten kann.','er Ziffern enthält.','er immer kürzer als zehn Zeichen ist.']],
+ ['Das Registrierungsdatum wird als ','Datum',' gespeichert, weil ',['ein Kalenderdatum gespeichert wird.','es Punkte enthält.','Ziffern nicht als Text gespeichert werden dürfen.']],
+ ['Ein Guthaben von 19,99 € wird als ','Dezimalzahl',' gespeichert, weil ',['es Nachkommastellen hat und man damit rechnet.','es ein Eurozeichen enthält.','es kleiner als 100 ist.']]];
+$('#a5List').innerHTML=A5.map(([p1,t,p2,rs],i)=>`<div class="sent">${i+1}. ${p1}<select data-a="${t}">${tyOpts()}</select>${p2}<select data-a="${esc(rs[0])}"><option value="">– Begründung wählen –</option>${shuffle(rs).map(r=>`<option>${esc(r)}</option>`).join('')}</select></div>`).join('');
+$('#a5List').addEventListener('change',e=>{if(e.target.tagName==='SELECT')e.target.classList.remove('ok','bad');});
+let a5a=false;
+$('#a5Check').onclick=()=>{
+  const s=$$('#a5List select');let ok=0,open=0;
+  s.forEach(x=>{if(!x.value){open++;x.classList.remove('ok','bad');return;}const g=x.value===x.dataset.a;x.classList.toggle('ok',g);x.classList.toggle('bad',!g);if(g)ok++;});
+  if(ok===s.length){a5a=true;fb('a5Fb','ok','✓ Alle Begründungen stimmen!');}
+  else fb('a5Fb',open?'info':'bad',`${ok} von ${s.length} Auswahlfeldern richtig${open?`, ${open} noch offen`:''}.`);
+  updA5();
+};
+
+/* ---------- A6 ---------- */
+const KEY='instahub-datentypen-a6-v1';
+const fresh=()=>({name:'',key:-1,attrs:['','','','','','',''],types:['','','','','','',''],why:['','','','','','',''],rows:[Array(7).fill(''),Array(7).fill(''),Array(7).fill('')],a5:''});
+let st;try{st=JSON.parse(localStorage.getItem(KEY));}catch(e){}
+if(!st||!Array.isArray(st.attrs)||!Array.isArray(st.types))st=fresh();
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}};
+$('#studentName').value=st.name;$('#a5text').value=st.a5||'';
+$('#studentName').addEventListener('input',e=>{st.name=e.target.value;save();});
+$('#a5text').addEventListener('input',e=>{st.a5=e.target.value;save();updA5();});
+function updA5(){setDone('a5',a5a&&(st.a5||'').trim().length>=40);}
+$('#a5sol').onclick=()=>{if((st.a5||'').trim().length<40){fb('a5Fb','info','Schreibe zuerst deine eigene Erklärung (mindestens zwei Sätze), dann kannst du vergleichen.');return;}$('#a5solBox').classList.toggle('show');};
+$('#ideaBtn').onclick=()=>$('#ideaBox').classList.toggle('show');
+
+function validDate(v){const m=v.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);if(!m)return false;const d=+m[1],mo=+m[2],y=+m[3];const D=new Date(y,mo-1,d);return D.getFullYear()===y&&D.getMonth()===mo-1&&D.getDate()===d;}
+const FITS={
+ Text:v=>true,
+ Ganzzahl:v=>/^[+-]?\d+$/.test(v),
+ Dezimalzahl:v=>/^[+-]?\d+([.,]\d+)?$/.test(v),
+ Datum:validDate,
+ Uhrzeit:v=>/^([01]?\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(v),
+ Wahrheitswert:v=>/^(ja|nein|wahr|falsch|true|false)$/i.test(v)};
+const HINT={Ganzzahl:'nur ganze Zahl, z. B. 12',Dezimalzahl:'Zahl, z. B. 3,5',Datum:'gültiges Datum TT.MM.JJJJ',Uhrzeit:'Uhrzeit hh:mm',Wahrheitswert:'ja oder nein'};
+
+function renderBuilder(){
+  let h='<thead><tr>'+st.attrs.map((a,i)=>`<th class="${st.key===i?'iskey':''}"><div class="thwrap"><button class="kbtn ${st.key===i?'on':''}" data-key="${i}" title="Als Schlüsselattribut markieren">🔑</button><input class="ain" data-c="${i}" placeholder="Attribut ${i+1}" value="${esc(a)}"><button class="x" data-delc="${i}" title="Attribut entfernen">×</button></div><select class="tsel" data-c="${i}">${tyOpts(st.types[i]).replace('– wählen –','Datentyp …')}</select></th>`).join('')+'<th class="tight"></th></tr></thead><tbody>';
+  st.rows.forEach((r,ri)=>{h+='<tr>'+r.map((v,ci)=>`<td><input class="vin" data-r="${ri}" data-c="${ci}" placeholder="Wert" value="${esc(v)}"></td>`).join('')+`<td class="tight"><button class="x" data-delr="${ri}" title="Datensatz entfernen">×</button></td></tr>`;});
+  $('#bTable').innerHTML=h+'</tbody>';
+  renderWhy();updateA6();
+}
+function renderWhy(){
+  $('#whyList').innerHTML=st.attrs.map((a,i)=>`<div class="why-row"><span><b class="wl" data-c="${i}">${esc(a||'Attribut '+(i+1))}</b> ${st.types[i]?`<span class="ty ty-${st.types[i]}">${st.types[i]}</span>`:'<span style="color:var(--muted)">(kein Datentyp)</span>'}</span><input class="win" data-c="${i}" placeholder="…, weil …" value="${esc(st.why[i]||'')}"></div>`).join('');
+}
+$('#bTable').addEventListener('input',e=>{const t=e.target;
+  if(t.classList.contains('ain')){st.attrs[+t.dataset.c]=t.value;const wl=$(`.wl[data-c="${t.dataset.c}"]`);if(wl)wl.textContent=t.value||'Attribut '+(+t.dataset.c+1);}
+  else if(t.classList.contains('vin'))st.rows[+t.dataset.r][+t.dataset.c]=t.value;
+  save();updateA6();});
+$('#bTable').addEventListener('change',e=>{const t=e.target;if(t.classList.contains('tsel')){st.types[+t.dataset.c]=t.value;save();renderWhy();updateA6();}});
+$('#whyList').addEventListener('input',e=>{const t=e.target;if(t.classList.contains('win')){st.why[+t.dataset.c]=t.value;save();updateA6();}});
+$('#bTable').addEventListener('click',e=>{
+  const k=e.target.closest('.kbtn');if(k){const i=+k.dataset.key;st.key=st.key===i?-1:i;save();renderBuilder();return;}
+  const b=e.target.closest('.x');if(!b)return;
+  if(b.dataset.delc!=null&&st.attrs.length>1){const c=+b.dataset.delc;['attrs','types','why'].forEach(f=>st[f].splice(c,1));st.rows.forEach(r=>r.splice(c,1));if(st.key===c)st.key=-1;else if(st.key>c)st.key--;}
+  if(b.dataset.delr!=null&&st.rows.length>1)st.rows.splice(+b.dataset.delr,1);
+  save();renderBuilder();
+});
+$('#addAttr').onclick=()=>{if(st.attrs.length>=10)return;st.attrs.push('');st.types.push('');st.why.push('');st.rows.forEach(r=>r.push(''));save();renderBuilder();const ins=$$('#bTable .ain');ins[ins.length-1].focus();};
+$('#addRow').onclick=()=>{if(st.rows.length>=10)return;st.rows.push(st.attrs.map(()=>''));save();renderBuilder();};
+
+function tableChecks(){
+  const A=st.attrs.map(s=>s.trim()),filled=A.filter(Boolean);
+  const uniq=new Set(filled.map(s=>s.toLowerCase())).size===filled.length;
+  const typed=st.types.every(Boolean);const distinct=new Set(st.types.filter(Boolean)).size;
+  let bad=0,empty=0;
+  $$('#bTable .vin').forEach(inp=>{const v=inp.value.trim(),t=st.types[+inp.dataset.c];
+    const isBad=!!(v&&t&&!FITS[t](v));inp.classList.toggle('badval',isBad);inp.title=isBad?'Passt nicht zum Datentyp '+t+' ('+HINT[t]+')':'';if(isBad)bad++;if(!v)empty++;});
+  let keyOk=false,keyHint='Markiere ein Attribut mit 🔑.';
+  if(st.key>=0){const v=st.rows.map(r=>(r[st.key]||'').trim().toLowerCase());
+    if(!v.every(Boolean))keyHint='Beim Schlüsselattribut fehlen Attributwerte.';
+    else if(new Set(v).size!==v.length)keyHint='Beim Schlüsselattribut kommen Attributwerte doppelt vor.';
+    else{keyOk=true;keyHint='';}}
+  const zipBad=A.some((a,i)=>/(plz|postleit|telefon|handy|mobil|tel\.?$)/i.test(a)&&st.types[i]&&st.types[i]!=='Text');
+  const textAsOther=A.some((a,i)=>{if(st.types[i]!=='Text')return false;const v=st.rows.map(r=>(r[i]||'').trim()).filter(Boolean);return v.length>=2&&(v.every(validDate)||v.every(FITS.Uhrzeit)||v.every(FITS.Wahrheitswert));});
+  const whyOk=st.why.every(w=>(w||'').trim().length>=8);
+  return[
+    [filled.length>=7&&filled.length===A.length,'Mindestens 7 Attribute, alle mit einem Namen.',filled.length<A.length?'Es gibt noch Attribute ohne Namen.':''],
+    [filled.length>0&&uniq,'Jedes Attribut kommt nur einmal vor.',''],
+    [typed,'Jedes Attribut hat einen Datentyp.',''],
+    [distinct>=4,'Mindestens 4 verschiedene Datentypen.',`bisher ${distinct}`],
+    [keyOk,'Ein Schlüsselattribut ist markiert, seine Attributwerte sind eindeutig und vollständig.',keyHint],
+    [st.rows.length>=3&&empty===0,'Mindestens 3 Datensätze, alle Felder ausgefüllt.',''],
+    [bad===0&&empty<st.rows.length*st.attrs.length,'Alle Attributwerte passen zum Datentyp.',bad?`${bad} rot markierte(s) Feld(er) – prüfe das Format (siehe Hinweis über der Tabelle).`:''],
+    [!zipBad,'Achtung-Regel: Telefonnummern und Postleitzahlen sind als Text gespeichert.',zipBad?'Mit diesen Nummern rechnet man nicht.':''],
+    [!textAsOther,'Kein Attribut ist als Text gespeichert, obwohl ein genauerer Datentyp passt.',textAsOther?'Ein Text-Attribut enthält nur Daten, Uhrzeiten oder ja/nein-Werte.':''],
+    [whyOk,'Für jedes Attribut gibt es eine Begründung.','']];
+}
+function updateA6(){
+  const c=tableChecks();
+  $('#checks').innerHTML=c.map(([ok,t,h])=>`<li class="${ok?'ok':''}"><span class="ic">${ok?'✓':''}</span><span>${t}${h&&!ok?` <span class="hint">– ${h}</span>`:''}</span></li>`).join('');
+  const all=c.every(x=>x[0]);$('#a6Success').classList.toggle('show',all);setDone('a6',all);
+}
+function resultText(){
+  const L=[];L.push('Name: '+(st.name||'–'));L.push('Tabelle: Benutzer (erweitert)');L.push('Schlüsselattribut: '+(st.key>=0?(st.attrs[st.key]||'–'):'nicht markiert'));L.push('');
+  const hd=st.attrs.map((a,i)=>i===st.key?a+' (S)':a),tl=st.types.map(t=>t||'?');
+  const w=st.attrs.map((a,i)=>Math.max(hd[i].length,tl[i].length,...st.rows.map(r=>(r[i]||'').length),3));
+  const line=cells=>'| '+cells.map((v,i)=>(v||'').padEnd(w[i])).join(' | ')+' |';
+  L.push(line(hd));L.push(line(tl));L.push('|'+w.map(x=>'-'.repeat(x+2)).join('|')+'|');st.rows.forEach(r=>L.push(line(r)));L.push('');
+  L.push('Begründungen der Datentypen:');st.attrs.forEach((a,i)=>L.push(`- ${a||'?'} (${st.types[i]||'?'}): ${st.why[i]||'–'}`));L.push('');
+  L.push('Aufgabe 5b – Warum ist die Postleitzahl keine Ganzzahl?');L.push(st.a5||'–');
+  return L.join('\n');
+}
+$('#copyBtn').onclick=async()=>{const t=resultText(),out=$('#copyOut');out.value=t;out.style.display='block';
+  try{await navigator.clipboard.writeText(t);$('#copyMsg').textContent='✓ In die Zwischenablage kopiert.';}
+  catch(e){out.focus();out.select();$('#copyMsg').textContent='Kopieren nicht möglich – markiere den Text unten und kopiere ihn mit Strg + C.';}};
+let resetArmed=false;
+$('#resetBtn').onclick=e=>{
+  if(!resetArmed){resetArmed=true;e.target.textContent='Wirklich zurücksetzen?';setTimeout(()=>{resetArmed=false;e.target.textContent='Aufgabe 6 zurücksetzen';},3000);return;}
+  const n=st.name,a=st.a5;st=fresh();st.name=n;st.a5=a;save();$('#copyOut').style.display='none';$('#copyMsg').textContent='';
+  resetArmed=false;e.target.textContent='Aufgabe 6 zurücksetzen';renderBuilder();
+};
+
+/* ---------- BONUS ---------- */
+$('#simType').innerHTML=TYPES.map(t=>`<option>${t}</option>`).join('');
+function simulate(v,t){
+  v=v.trim();if(!v)return['bad','Bitte gib einen Wert ein.'];
+  if(t==='Text')return['ok',`gespeichert: „${v}“ – genau so, wie eingegeben.`];
+  if(t==='Ganzzahl'){if(!/^[+-]?\d+$/.test(v))return['bad',`abgelehnt: „${v}“ ist keine ganze Zahl.`];const n=parseInt(v,10);return String(n)!==v.replace(/^\+/,'')?['warn',`gespeichert: ${n} – Achtung: Der Wert hat sich verändert! Führende Nullen gehen bei Zahlen verloren.`]:['ok',`gespeichert: ${n}`];}
+  if(t==='Dezimalzahl'){if(!/^[+-]?\d+([.,]\d+)?$/.test(v))return['bad',`abgelehnt: „${v}“ ist keine Zahl.`];const n=parseFloat(v.replace(',','.'));const s=String(n).replace('.',',');return s!==v.replace(/^\+/,'')?['warn',`gespeichert: ${s} – Achtung: Der Wert hat sich verändert!`]:['ok',`gespeichert: ${s}`];}
+  if(t==='Datum'){if(!/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(v))return['bad',`abgelehnt: „${v}“ hat nicht das Format TT.MM.JJJJ.`];if(!validDate(v))return['bad',`abgelehnt: Das Datum ${v} gibt es nicht.`];const[d,m,y]=v.split('.');return['ok',`gespeichert: ${d.padStart(2,'0')}.${m.padStart(2,'0')}.${y} (intern z. B. als ${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')})`];}
+  if(t==='Uhrzeit'){return FITS.Uhrzeit(v)?['ok',`gespeichert: ${v}`]:['bad',`abgelehnt: „${v}“ ist keine gültige Uhrzeit.`];}
+  if(t==='Wahrheitswert'){if(/^(ja|wahr|true)$/i.test(v))return['ok','gespeichert: wahr'];if(/^(nein|falsch|false)$/i.test(v))return['ok','gespeichert: falsch'];return['bad',`abgelehnt: „${v}“ ist weder wahr noch falsch.`];}
+}
+$('#simBtn').onclick=()=>{const[c,m]=simulate($('#simVal').value,$('#simType').value);const o=$('#simOut');o.className='simout show '+c;o.textContent=m;};
+$('#simVal').addEventListener('keydown',e=>{if(e.key==='Enter')$('#simBtn').click();});
+const SQ=[
+ {q:'1. Speichere die Postleitzahl 01067 als Ganzzahl und als Text. Was passiert bei Ganzzahl?',o:[
+   {t:'Die führende 0 geht verloren – gespeichert wird 1067.',ok:true,e:'Genau – und 1067 ist keine gültige Postleitzahl mehr.'},
+   {t:'Der Wert wird abgelehnt.',ok:false,e:'Probiere es im Simulator aus.'},
+   {t:'Der Wert wird unverändert gespeichert.',ok:false,e:'Schau genau hin, was der Simulator ausgibt.'}]},
+ {q:'2. Versuche, das Datum 31.02.2026 als Datum zu speichern.',o:[
+   {t:'Es wird abgelehnt, weil es dieses Datum nicht gibt.',ok:true,e:'Richtig: Der Datentyp Datum schützt vor unmöglichen Daten. Als Text wäre der Fehler unbemerkt geblieben.'},
+   {t:'Es wird als 31.02.2026 gespeichert.',ok:false,e:'Probiere es aus – hat der Februar 31 Tage?'},
+   {t:'Es wird automatisch zum 03.03.2026.',ok:false,e:'Probiere es im Simulator aus.'}]},
+ {q:'3. Speichere den Wert „vielleicht“ als Wahrheitswert. Was zeigt das?',o:[
+   {t:'Ein Wahrheitswert lässt nur zwei Zustände zu – andere Eingaben werden abgelehnt.',ok:true,e:'Genau: Der Datentyp sorgt dafür, dass nur sinnvolle Werte gespeichert werden.'},
+   {t:'Wahrheitswerte können beliebigen Text speichern.',ok:false,e:'Probiere es im Simulator aus.'},
+   {t:'„vielleicht“ wird als wahr gespeichert.',ok:false,e:'Probiere es im Simulator aus.'}]}];
+let simDone=0,sortDone=false,gfDone=false;
+SQ.forEach((s,i)=>{$('#simQs').insertAdjacentHTML('beforeend',`<div class="qblock">${s.q}</div><div class="mc" id="sq${i}"></div><div class="mc-exp" id="sq${i}e"></div>`);makeMC('sq'+i,'sq'+i+'e',s.o,()=>{simDone++;updBonus();});});
+makeMC('sortMc','sortExp',[
+ {t:'100, 12, 25, 3, 9',ok:true,e:'Richtig! Text wird Zeichen für Zeichen verglichen: „1“ kommt vor „2“, „3“ und „9“ – egal wie lang die Zahl ist. Deshalb brauchen Anzahlen einen Zahlen-Datentyp.'},
+ {t:'3, 9, 12, 25, 100',ok:false,e:'So würde man Ganzzahlen sortieren. Text wird aber Zeichen für Zeichen verglichen – schau dir jeweils das erste Zeichen an.'},
+ {t:'9, 3, 25, 12, 100',ok:false,e:'Vergleiche das erste Zeichen jedes Wertes wie im Wörterbuch.'},
+ {t:'100, 25, 12, 9, 3',ok:false,e:'Das wäre absteigend nach Zahlenwert. Gesucht ist aufsteigend, Zeichen für Zeichen.'}],
+ ()=>{sortDone=true;$('#sortDemo').classList.add('show');updBonus();});
+const GF=[['Hausnummer','12a','Text','Hausnummern können Buchstaben enthalten.'],
+ ['Schuhgröße','42,5','Dezimalzahl','Es gibt halbe Größen.'],
+ ['Sternebewertung eines Beitrags (1 bis 5 Sterne)','4','Ganzzahl','Es werden ganze Sterne vergeben.'],
+ ['Handynummer','+49 176 5551234','Text','Enthält + und Leerzeichen; man rechnet nicht damit.'],
+ ['Kontostand im InstaHub-Shop','-3,50','Dezimalzahl','Geldbeträge haben Nachkommastellen und können negativ sein.'],
+ ['hat Profilbild hochgeladen','nein','Wahrheitswert','Entweder es gibt ein Profilbild oder nicht.'],
+ ['Geburtsjahr','2010','Ganzzahl','Ein Jahr ist eine ganze Zahl, mit der man z. B. das Alter berechnen kann.'],
+ ['Beginn der Live-Übertragung','19:30','Uhrzeit','Es wird eine Uhrzeit gespeichert.']];
+$('#gfT').innerHTML='<thead><tr><th>Attribut</th><th>Beispielwert</th><th>Datentyp</th><th style="font-family:\'Source Sans 3\',sans-serif">Begründung</th></tr></thead><tbody>'+
+ GF.map(([a,v],i)=>`<tr><td>${a}</td><td>${v}</td><td><select data-i="${i}">${tyOpts()}</select></td><td class="why"></td></tr>`).join('')+'</tbody>';
+$('#gfT').addEventListener('change',e=>{if(e.target.tagName==='SELECT'){e.target.classList.remove('ok','bad');e.target.closest('tr').querySelector('.why').textContent='';}});
+$('#gfCheck').onclick=()=>{let ok=0,open=0;
+  $$('#gfT select').forEach(s=>{const i=+s.dataset.i,w=s.closest('tr').querySelector('.why');if(!s.value){open++;s.classList.remove('ok','bad');w.textContent='';return;}
+    const g=s.value===GF[i][2];s.classList.toggle('ok',g);s.classList.toggle('bad',!g);w.textContent=g?'✓ '+GF[i][3]:'';if(g)ok++;});
+  if(ok===GF.length){gfDone=true;fb('gfFb','ok','✓ Alle Grenzfälle gemeistert!');}
+  else fb('gfFb',open?'info':'bad',`${ok} von ${GF.length} richtig${open?`, ${open} noch offen`:''}.`);
+  updBonus();};
+function updBonus(){setDone('bonus',simDone===SQ.length&&sortDone&&gfDone);}
+
+renderBuilder();updA5();show('info');
+</script>
+</body>
+</html>
